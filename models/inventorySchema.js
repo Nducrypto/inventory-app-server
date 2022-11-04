@@ -1,17 +1,18 @@
 import mongoose from "mongoose";
 
-const postSchema = mongoose.Schema({
-  type: String,
-  category: String,
-  quantity: Number,
-  amount: Number,
-  price: Number,
+const inventorySchema = mongoose.Schema({
+  type: { type: String, required: true },
+  category: { type: String, required: true },
+  quantity: { type: Number, required: true },
+  amount: { type: Number, required: true },
+  price: { type: Number, required: true },
+  creator: String,
   date: {
     type: Date,
     default: new Date(),
   },
 });
 
-const Inventory = mongoose.model("Inventory", postSchema);
+const Inventory = mongoose.model("Inventory", inventorySchema);
 
 export default Inventory;

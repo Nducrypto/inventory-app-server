@@ -5,6 +5,7 @@ import cors from "cors";
 import dotenv from "dotenv";
 
 import homeRoutes from "./routes/inventoryRoutes.js";
+import authRoutes from "./routes/authRoute.js";
 // import userRoutes from "./routes/user.js";
 
 const app = express();
@@ -15,7 +16,21 @@ app.use(bodyParser.urlencoded({ limit: "30mb", extended: true }));
 app.use(cors());
 
 app.use("/api/page", homeRoutes);
+app.use("/api/auth", authRoutes);
+
 // app.use("/api/users", userRoutes);
+
+app.use((err, req, res, next) => {
+  const errorStatus = err.status || 500;
+  const errorMessage = err.message || "something went wrong";
+  return res.status(errorStatus).json({
+    success: false,
+    errorStatus: errorStatus,
+    message: errorMessage,
+    stack: err.stack,
+    ndu: err.ndu,
+  });
+});
 
 const PORT = process.env.PORT || 5000;
 

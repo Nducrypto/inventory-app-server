@@ -7,7 +7,7 @@ const router = express.Router();
 
 export const getTransactions = async (req, res) => {
   try {
-    const transactions = await Inventory.find();
+    const transactions = await Inventory.find().sort({ _id: -1 });
     res.status(200).json(transactions);
   } catch (error) {
     res.status(404).json({ message: error.message });
