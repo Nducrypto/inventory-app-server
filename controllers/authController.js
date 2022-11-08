@@ -4,7 +4,7 @@ import UserInventory from "../models/userModel.js";
 import { createError } from "../utils/error.js";
 
 export const register = async (req, res, next) => {
-  const { email, firstName, lastName, confirmPassword } = req.body;
+  const { email, password, confirmPassword } = req.body;
 
   try {
     const existingUser = await UserInventory.findOne({ email });
@@ -14,21 +14,11 @@ export const register = async (req, res, next) => {
 
     if (existingUser) return next(createError(402, "User Already Exist."));
 
-    if (
-      !email ||
-      !firstName ||
-      !lastName ||
-      !req.body.password ||
-      !confirmPassword
-    )
-      return next(createError(404, "Please fill in the fields"));
-
     const hashedPassword = await bcrypt.hash(req.body.password, 12);
 
     const result = await UserInventory.create({
       email,
       password: hashedPassword,
-      name: `${firstName} ${lastName}`,
     });
 
     const token = jwt.sign(
@@ -47,7 +37,7 @@ export const register = async (req, res, next) => {
 export const login = async (req, res, next) => {
   const { email } = req.body;
   try {
-    const existingUser = await UserInventory.findOne({ email });
+    const existingUser = await UserInventory.findOne({ email: email });
     if (!existingUser) return next(createError(400, "User Not Found"));
 
     const isPasswordCorrect = await bcrypt.compare(
@@ -70,5 +60,33 @@ export const login = async (req, res, next) => {
     res.status(200).json({ result: { ...otherDetails }, token });
   } catch (err) {
     next(createError(404, "Failed To Login"));
+  }
+};
+
+export const getUserById = async (req, res, next) => {
+  try {
+    const user = await UserInventory.find({ _id: req.params.id });
+    res.status(200).json(user);
+  } catch (err) {
+    next(createError(401, "error making user request"));
+  }
+};
+
+export const updateUser = async (req, res, next) => {
+  console.log(req.body);
+  try {
+    const user = await UserInventory.findById(req.params.id);
+    if (user) {
+      const { _id, email, bio, firstName, phoneNumber, lastName } = user;
+      user.email = req.body.email || email;
+      user.firstName = req.body.firstName || firstName;
+      user.lastName = req.body.lastName || lastName;
+      user.bio = req.body.bio || bio;
+      user.phoneNumber = req.body.phoneNumber || phoneNumber;
+    }
+    const updatedUser = await user.save();
+    res.status(200).json(updatedUser);
+  } catch (err) {
+    next(createError(401, "failed to update"));
   }
 };
