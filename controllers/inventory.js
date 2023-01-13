@@ -15,9 +15,8 @@ export const getTransactions = async (req, res) => {
   }
 };
 export const getTransaction = async (req, res) => {
-  const { id } = req.params;
   try {
-    const transaction = await Inventory.findById(id);
+    const transaction = await Inventory.findById(req.params.id);
 
     res.status(200).json(transaction);
   } catch (error) {
@@ -41,7 +40,6 @@ export const createTransaction = async (req, res) => {
 
 export const deleteTransaction = async (req, res) => {
   const { id } = req.params;
-
   if (!mongoose.Types.ObjectId.isValid(id))
     return res.status(404).send(`No transaction with id: ${id}`);
 
@@ -66,6 +64,18 @@ export const updateTransaction = async (req, res) => {
   );
 
   res.json(updatedTransaction);
+};
+
+// =====STATS
+export const inventoryStats = async (req, res, next) => {
+  const date = new Date();
+  const lastMonth = new Date(date.setMonth(date.getMonth() - 1));
+  try {
+    const income = await Inventory.find({ date: { $gte: lastMonth } });
+    res.status(200).json(income);
+  } catch (err) {
+    res.status(409).json({ message: error.message });
+  }
 };
 
 export default router;
