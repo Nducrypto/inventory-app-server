@@ -2,11 +2,13 @@ import express from "express";
 
 import {
   createTransaction,
-  deleteTransaction,
+  deleteAllTransaction,
   getTransactions,
-  getTransaction,
+  getHistory,
   updateTransaction,
   inventoryStats,
+  deleteHistory,
+  getPercDetails,
 } from "../controllers/inventory.js";
 
 const router = express.Router();
@@ -14,9 +16,11 @@ const router = express.Router();
 
 router.get("/", getTransactions);
 router.get("/stats", inventoryStats);
-router.get("/:id", getTransaction);
+router.get("/history", getHistory);
+router.get("/percdetails", getPercDetails);
 router.post("/", createTransaction);
-router.delete("/:id", deleteTransaction);
+router.delete("/deleteAll", deleteAllTransaction);
+router.delete("/deleteOne", deleteHistory);
 router.patch("/:id", updateTransaction);
 
 export default router;

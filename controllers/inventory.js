@@ -2,23 +2,48 @@ import express from "express";
 import mongoose from "mongoose";
 
 import Inventory from "../models/inventorySchema.js";
+import History from "../models/HistorySchema.js";
 
 const router = express.Router();
 
 export const getTransactions = async (req, res) => {
+  const { page, creator } = req.query;
   try {
-    const transactions = await Inventory.find().sort({ _id: -1 });
-    res.status(200).json(transactions);
+    const LIMIT = 4;
+    const startIndex = (Number(page) - 1) * LIMIT;
+
+    const total = await Inventory.countDocuments({ creator });
+
+    const transactions = await Inventory.find({ creator })
+      .sort({ _id: -1 })
+      .limit(LIMIT)
+      .skip(startIndex);
+    res.status(200).json({
+      transactions,
+      currentPage: Number(page),
+      numberOfPages: Math.ceil(total / LIMIT),
+    });
   } catch (error) {
     res.status(404).json({ message: error.message });
     console.log(error);
   }
 };
-export const getTransaction = async (req, res) => {
+export const getHistory = async (req, res) => {
+  const { creator } = req.query;
   try {
-    const transaction = await Inventory.findById(req.params.id);
+    const history = await History.find({ creator }).sort({ _id: -1 });
 
-    res.status(200).json(transaction);
+    res.status(200).json(history);
+  } catch (error) {
+    res.status(404).json({ message: error.message });
+    console.log(error);
+  }
+};
+export const getPercDetails = async (req, res) => {
+  const { creator } = req.query;
+  try {
+    const total = await Inventory.find({ creator });
+    res.status(200).json(total);
   } catch (error) {
     res.status(404).json({ message: error.message });
     console.log(error);
@@ -38,10 +63,12 @@ export const createTransaction = async (req, res) => {
       item.type = item.type;
       item.category = item.category;
       item.price = req.body.price;
-      item.quantity = Number(item.quantity) + Number(req.body.quantity);
+      item.quantityIn = Number(item.quantityIn) + Number(req.body.quantity);
       item.quantitySold = item.quantitySold;
+      item.quantityRemaining =
+        Number(item.quantityIn) - Number(item.quantitySold);
       item.outgoingCost = item.outgoingCost;
-      item.totalCost = Number(item.totalCost) + Number(req.body.totalCost);
+      item.totalCost = item.totalCost + req.body.totalCost;
 
       await item.save();
 
@@ -50,8 +77,10 @@ export const createTransaction = async (req, res) => {
       item.type = item.type;
       item.category = item.category;
       item.price = req.body.price;
-      item.quantity = Number(item.quantity) - Number(req.body.quantity);
+      item.quantityIn = item.quantityIn;
       item.quantitySold = Number(item.quantitySold) + Number(req.body.quantity);
+      item.quantityRemaining =
+        Number(item.quantityIn) - Number(item.quantitySold);
       item.outgoingCost =
         Number(item.outgoingCost) + Number(req.body.totalCost);
       item.totalCost = item.totalCost;
@@ -63,29 +92,91 @@ export const createTransaction = async (req, res) => {
       const newTransaction = new Inventory({
         type: req.body.type,
         category: req.body.category,
-        quantity: req.body.quantity,
+        quantityIn: req.body.quantity,
         totalCost: req.body.totalCost,
         outgoingCost: 0,
         price: req.body.price,
         quantitySold: 0,
         creator: req.body.creator,
         date: req.body.date,
+        quantityRemaining: 0,
       });
       await newTransaction.save();
 
       res.status(201).json(newTransaction);
     }
+
+    //  ======= HISTORY SCHEMA =======
+    const historyTransaction = new History({
+      type: req.body.type,
+      category: req.body.category,
+      quantityIn: req.body.quantity,
+      totalCost: req.body.totalCost,
+      outgoingCost: req.body.totalCost,
+      price: req.body.price,
+      quantitySold: req.body.quantity,
+      creator: req.body.creator,
+      date: req.body.date,
+      quantityRemaining: 0,
+    });
+    await historyTransaction.save();
+    // i didn't return this history json
   } catch (error) {
     console.log(error);
   }
 };
 
-export const deleteTransaction = async (req, res) => {
-  const { id } = req.params;
-  if (!mongoose.Types.ObjectId.isValid(id))
-    return res.status(404).send(`No transaction with id: ${id}`);
+export const deleteAllTransaction = async (req, res) => {
+  const { _id: id } = req.body;
 
-  await Inventory.findByIdAndRemove(id);
+  await Inventory.findByIdAndDelete(id);
+  const category = new RegExp(req.body.category, "i");
+
+  await History.deleteMany({
+    id,
+    category,
+    creator: req.body.creator,
+  });
+
+  res.json({ message: "transaction deleted successfully." });
+};
+
+export const deleteHistory = async (req, res) => {
+  const { _id: id } = req.body;
+
+  await History.findByIdAndDelete(id);
+  const category = new RegExp(req.body.category, "i");
+
+  const item = await Inventory.findOne({
+    category,
+    creator: req.body.creator,
+  });
+
+  if (item && item.type === req.body.type) {
+    item.type = item.type;
+    item.category = item.category;
+    item.price = req.body.price;
+    item.quantityIn = item.quantityIn - req.body.quantityIn;
+    item.quantitySold = item.quantitySold;
+    item.quantityRemaining = item.quantityIn - item.quantitySold;
+    item.outgoingCost = item.outgoingCost;
+    item.totalCost = item.totalCost - req.body.totalCost;
+
+    await item.save();
+  } else {
+    item.type = item.type;
+    item.category = item.category;
+    item.price = req.body.price;
+    item.quantityIn = item.quantityIn;
+    item.quantitySold = item.quantitySold - req.body.quantitySold;
+    item.quantityRemaining = item.quantityIn - item.quantitySold;
+    item.outgoingCost = item.outgoingCost - req.body.totalCost;
+    item.totalCost = item.totalCost;
+
+    await item.save();
+  }
+  // console.log(item);
+  await History.findByIdAndDelete(id);
 
   res.json({ message: "transaction deleted successfully." });
 };

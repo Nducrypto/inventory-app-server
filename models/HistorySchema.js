@@ -1,12 +1,12 @@
 import mongoose from "mongoose";
 
-const inventorySchema = mongoose.Schema(
+const historySchema = mongoose.Schema(
   {
     type: { type: String },
     category: { type: String },
     quantityIn: { type: Number },
-    quantityRemaining: { type: Number },
     quantitySold: { type: Number },
+    quantityRemaining: { type: Number },
     totalCost: { type: Number },
     outgoingCost: { type: Number },
     price: { type: Number },
@@ -19,6 +19,6 @@ const inventorySchema = mongoose.Schema(
   { timestamps: true }
 );
 
-const Inventory = mongoose.model("Inventory", inventorySchema);
+const History = mongoose.model("History", historySchema);
 
-export default Inventory;
+export default History;
