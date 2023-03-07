@@ -7,43 +7,13 @@ import History from "../models/HistorySchema.js";
 const router = express.Router();
 
 export const getTransactions = async (req, res) => {
-  const { page, creator } = req.query;
-  try {
-    const LIMIT = 4;
-    const startIndex = (Number(page) - 1) * LIMIT;
-
-    const total = await Inventory.countDocuments({ creator });
-
-    const transactions = await Inventory.find({ creator })
-      .sort({ _id: -1 })
-      .limit(LIMIT)
-      .skip(startIndex);
-    res.status(200).json({
-      transactions,
-      currentPage: Number(page),
-      numberOfPages: Math.ceil(total / LIMIT),
-    });
-  } catch (error) {
-    res.status(404).json({ message: error.message });
-    console.log(error);
-  }
-};
-export const getHistory = async (req, res) => {
   const { creator } = req.query;
+
   try {
+    const transactions = await Inventory.find({ creator }).sort({ _id: -1 });
     const history = await History.find({ creator }).sort({ _id: -1 });
 
-    res.status(200).json(history);
-  } catch (error) {
-    res.status(404).json({ message: error.message });
-    console.log(error);
-  }
-};
-export const getPercDetails = async (req, res) => {
-  const { creator } = req.query;
-  try {
-    const total = await Inventory.find({ creator });
-    res.status(200).json(total);
+    res.status(200).json({ transactions, history });
   } catch (error) {
     res.status(404).json({ message: error.message });
     console.log(error);
