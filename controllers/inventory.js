@@ -32,13 +32,13 @@ export const createTransaction = async (req, res) => {
     if (item && item.type === req.body.type) {
       item.type = item.type;
       item.category = item.category;
-      item.price = req.body.price;
+      item.price = Number(req.body.price);
       item.quantityIn = Number(item.quantityIn) + Number(req.body.quantity);
       item.quantitySold = item.quantitySold;
       item.quantityRemaining =
         Number(item.quantityIn) - Number(item.quantitySold);
       item.outgoingCost = item.outgoingCost;
-      item.totalCost = item.totalCost + req.body.totalCost;
+      item.totalCost = Number(item.totalCost) + Number(req.body.totalCost);
 
       await item.save();
 
@@ -46,7 +46,7 @@ export const createTransaction = async (req, res) => {
     } else if (item && item.type !== req.body.type) {
       item.type = item.type;
       item.category = item.category;
-      item.price = req.body.price;
+      item.price = Number(req.body.price);
       item.quantityIn = item.quantityIn;
       item.quantitySold = Number(item.quantitySold) + Number(req.body.quantity);
       item.quantityRemaining =
@@ -61,6 +61,7 @@ export const createTransaction = async (req, res) => {
     } else {
       const newTransaction = new Inventory({
         type: req.body.type,
+        quantityRemaining: 0,
         category: req.body.category,
         quantityIn: req.body.quantity,
         totalCost: req.body.totalCost,
@@ -69,7 +70,6 @@ export const createTransaction = async (req, res) => {
         quantitySold: 0,
         creator: req.body.creator,
         date: req.body.date,
-        quantityRemaining: 0,
       });
       await newTransaction.save();
 
@@ -79,6 +79,7 @@ export const createTransaction = async (req, res) => {
     //  ======= HISTORY SCHEMA =======
     const historyTransaction = new History({
       type: req.body.type,
+      quantityRemaining: 0,
       category: req.body.category,
       quantityIn: req.body.quantity,
       totalCost: req.body.totalCost,
@@ -87,7 +88,6 @@ export const createTransaction = async (req, res) => {
       quantitySold: req.body.quantity,
       creator: req.body.creator,
       date: req.body.date,
-      quantityRemaining: 0,
     });
     await historyTransaction.save();
     // i didn't return this history json
