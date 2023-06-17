@@ -6,9 +6,9 @@ const inventorySchema = mongoose.Schema(
     category: { type: String },
     quantityIn: { type: Number },
     quantityRemaining: { type: Number },
-    quantitySold: { type: Number },
+    quantitySold: { type: Number, default: 0 },
     totalCost: { type: Number },
-    outgoingCost: { type: Number },
+    outgoingCost: { type: Number, default: 0 },
     price: { type: Number },
     creator: String,
     date: {

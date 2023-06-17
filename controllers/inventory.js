@@ -24,50 +24,57 @@ export const createTransaction = async (req, res) => {
   try {
     const category = new RegExp(req.body.category, "i");
 
-    const item = await Inventory.findOne({
-      category: category,
+    // query
+    const query = {
+      category,
       creator: req.body.creator,
-    });
-    // console.log(item);
+    };
+    // find item
+    const item = await Inventory.findOne(query);
+
     if (item && item.type === req.body.type) {
-      item.type = item.type;
-      item.category = item.category;
-      item.price = Number(req.body.price);
-      item.quantityIn = Number(item.quantityIn) + Number(req.body.quantity);
-      item.quantitySold = item.quantitySold;
-      item.quantityRemaining =
-        Number(item.quantityIn) - Number(item.quantitySold);
-      item.outgoingCost = item.outgoingCost;
-      item.totalCost = Number(item.totalCost) + Number(req.body.totalCost);
+      const update = {
+        $inc: {
+          quantityIn: req.body.quantity,
+          quantityRemaining: req.body.quantity,
+          totalCost: req.body.totalCost,
+        },
+      };
 
-      await item.save();
+      const updatedItem = await Inventory.findOneAndUpdate(query, update, {
+        new: true,
+      });
 
-      res.status(201).json(item);
+      res.status(201).json(updatedItem);
     } else if (item && item.type !== req.body.type) {
-      item.type = item.type;
-      item.category = item.category;
-      item.price = Number(req.body.price);
-      item.quantityIn = item.quantityIn;
-      item.quantitySold = Number(item.quantitySold) + Number(req.body.quantity);
-      item.quantityRemaining =
-        Number(item.quantityIn) - Number(item.quantitySold);
-      item.outgoingCost =
-        Number(item.outgoingCost) + Number(req.body.totalCost);
-      item.totalCost = item.totalCost;
+      if (item.quantityIn - item.quantitySold < req.body.quantity) {
+        res.status(400).json({
+          error: "Quantity in is less than the requested quantity",
+        });
+        return;
+      }
 
-      await item.save();
+      const update = {
+        $inc: {
+          quantitySold: req.body.quantity,
+          quantityRemaining: -req.body.quantity,
+          outgoingCost: req.body.totalCost,
+        },
+      };
 
-      res.status(201).json(item);
+      const updatedItem = await Inventory.findOneAndUpdate(query, update, {
+        new: true,
+      });
+
+      res.status(201).json(updatedItem);
     } else {
       const newTransaction = new Inventory({
         type: req.body.type,
-        quantityRemaining: 0,
         category: req.body.category,
         quantityIn: req.body.quantity,
+        quantityRemaining: req.body.quantity,
         totalCost: req.body.totalCost,
-        outgoingCost: 0,
         price: req.body.price,
-        quantitySold: 0,
         creator: req.body.creator,
         date: req.body.date,
       });
@@ -79,7 +86,6 @@ export const createTransaction = async (req, res) => {
     //  ======= HISTORY SCHEMA =======
     const historyTransaction = new History({
       type: req.body.type,
-      quantityRemaining: 0,
       category: req.body.category,
       quantityIn: req.body.quantity,
       totalCost: req.body.totalCost,
@@ -96,6 +102,7 @@ export const createTransaction = async (req, res) => {
   }
 };
 
+// delete for dashbord
 export const deleteAllTransaction = async (req, res) => {
   const { _id: id } = req.body;
 
@@ -111,42 +118,46 @@ export const deleteAllTransaction = async (req, res) => {
   res.json({ message: "transaction deleted successfully." });
 };
 
+// delete for history
 export const deleteHistory = async (req, res) => {
-  const { _id: id } = req.body;
-
-  await History.findByIdAndDelete(id);
   const category = new RegExp(req.body.category, "i");
 
-  const item = await Inventory.findOne({
+  const query = {
     category,
     creator: req.body.creator,
-  });
+  };
+
+  const item = await Inventory.findOne(query);
 
   if (item && item.type === req.body.type) {
-    item.type = item.type;
-    item.category = item.category;
-    item.price = req.body.price;
-    item.quantityIn = item.quantityIn - req.body.quantityIn;
-    item.quantitySold = item.quantitySold;
-    item.quantityRemaining = item.quantityIn - item.quantitySold;
-    item.outgoingCost = item.outgoingCost;
-    item.totalCost = item.totalCost - req.body.totalCost;
+    const update = {
+      $inc: {
+        quantityIn: -req.body.quantityIn,
+        totalCost: req.body.totalCost,
+      },
+    };
 
-    await item.save();
+    const updatedItem = await Inventory.findOneAndUpdate(query, update, {
+      new: true,
+    });
   } else {
-    item.type = item.type;
-    item.category = item.category;
-    item.price = req.body.price;
-    item.quantityIn = item.quantityIn;
-    item.quantitySold = item.quantitySold - req.body.quantitySold;
-    item.quantityRemaining = item.quantityIn - item.quantitySold;
-    item.outgoingCost = item.outgoingCost - req.body.totalCost;
-    item.totalCost = item.totalCost;
+    const update = {
+      $inc: {
+        quantitySold: -req.body.quantitySold,
+        quantityRemaining: req.body.quantitySold,
+        outgoingCost: -req.body.totalCost,
+      },
+      $set: {
+        price: req.body.price,
+      },
+    };
 
-    await item.save();
+    const updatedItem = await Inventory.findOneAndUpdate(query, update, {
+      new: true,
+    });
   }
   // console.log(item);
-  await History.findByIdAndDelete(id);
+  await History.findByIdAndDelete(req.body._id);
 
   res.json({ message: "transaction deleted successfully." });
 };

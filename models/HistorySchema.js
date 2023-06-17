@@ -6,7 +6,6 @@ const historySchema = mongoose.Schema(
     category: { type: String },
     quantityIn: { type: Number },
     quantitySold: { type: Number },
-    quantityRemaining: { type: Number },
     totalCost: { type: Number },
     outgoingCost: { type: Number },
     price: { type: Number },
